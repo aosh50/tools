@@ -2,12 +2,12 @@ package main
 
 import (
 	"testing"
-	log "github.com/sirupsen/logrus"
 
+	log "github.com/sirupsen/logrus"
 )
 
 func TestGenViewModel(t *testing.T) {
-	
+
 	modelName, modelPropMap := testModel()
 	result := genViewModel(modelName, modelPropMap)
 
@@ -15,7 +15,7 @@ func TestGenViewModel(t *testing.T) {
 
 }
 func TestGenValidate(t *testing.T) {
-	
+
 	modelName, _ := testModel()
 	result := genValidate(modelName)
 
@@ -49,6 +49,39 @@ func TestGenModel(t *testing.T) {
 	log.Info(result)
 }
 
+func TestGenControllerCreate(t *testing.T) {
+	modelName, _ := testModel()
+	result := genControllerCreate(modelName)
+	log.Info(result)
+}
+
+func TestGenControllerGet(t *testing.T) {
+	modelName, _ := testModel()
+	result := genControllerGet(modelName)
+	log.Info(result)
+}
+
+func TestGenControllerDelete(t *testing.T) {
+	modelName, _ := testModel()
+	result := genControllerDelete(modelName)
+	log.Info(result)
+}
+
+func TestGenControllerUpdate(t *testing.T) {
+	modelName, _ := testModel()
+	result := genControllerUpdate(modelName)
+	log.Info(result)
+}
+func TestGenControllerActions(t *testing.T) {
+	modelName, _ := testModel()
+	result := genControllerRestActions(modelName)
+	log.Info(result)
+}
+
+func TestGenControllerTop(t *testing.T) {
+	result := genControllerTop("swanwater-go")
+	log.Info(result)
+}
 
 func testModel() (string, map[string]string) {
 	modelName := "Paddock"
