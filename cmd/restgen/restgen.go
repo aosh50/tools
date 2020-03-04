@@ -319,6 +319,19 @@ func genReduxActions(model string) string {
 	res = fmt.Sprintf("%sdelete%s: A.wrapAsyncWorker(\n\tdelete%sCreator,\n\t(params, dispatch) => A.api.delete%s(params).then(resp => resp.data)),\n", res, model, model, model)
 	res = fmt.Sprintf("%screate%s: A.wrapAsyncWorker(\n\tcreate%sCreator,\n\t(params, dispatch) => A.api.create%s(params).then(resp => resp.data)),\n", res, model, model, model)
 	res = fmt.Sprintf("%supdate%s: A.wrapAsyncWorker(\n\tupdate%sCreator,\n\t(params, dispatch) => A.api.update%s(params).then(resp => resp.data)),\n", res, model, model, model)
+
+	res = fmt.Sprintf("%s\n\n%s", res, reduxAction("get", model))
+	res = fmt.Sprintf("%s%s", res, reduxAction("create", model))
+	res = fmt.Sprintf("%s%s", res, reduxAction("delete", model))
+	res = fmt.Sprintf("%s%s\n", res, reduxAction("update", model))
+
 	return res
 
+}
+
+func reduxAction(action string, model string) string {
+	res := fmt.Sprintf(".case(%s%sCreator.started, (state, payload) => { return state; })\n", action, model)
+	res = fmt.Sprintf("%s.case(%s%sCreator.done, (state, payload) => { return state; })\n", res, action, model)
+	res = fmt.Sprintf("%s.case(%s%sCreator.failed, (state, payload) => { return state; })\n", res, action, model)
+	return res
 }
