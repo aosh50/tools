@@ -10,7 +10,11 @@ import (
 	"unicode"
 )
 
-var VALID_TYPES = []string{"string", "bool", "uint", "int", "int32", "int64", "float32", "float64", "time.Time"}
+var ValidTypes = []string{"string", "bool", "uint", "int", "int32", "int64", "float32", "float64", "time.Time"}
+var NumberTypes = []string{"uint", "int", "int32", "int64", "float32", "float64"}
+var StringTypes = []string{"string"}
+var DateTypes = []string{"time.Time"}
+var BoolTypes = []string{"bool"}
 
 func main() {
 	newModel()
@@ -44,6 +48,7 @@ func newModel() {
 	}
 	fileContents := genModel(name, props)
 	controllerContents := genController(name, appName)
+	tsContents := genTsModel(name, props)
 	err := ensureBaseDir(fmt.Sprintf("gen/%s", appName))
 	if err != nil {
 		log.Fatalln("Ensure error")
@@ -54,6 +59,10 @@ func newModel() {
 		log.Fatalln(err.Error())
 	}
 	err = WriteToFile(fmt.Sprintf("gen/%s/%sController.go", appName, name), controllerContents)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+	err = WriteToFile(fmt.Sprintf("gen/%s/%s.ts", appName, name), tsContents)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -77,7 +86,7 @@ func validateInputType(input string) bool {
 	valid := true
 	firstChar := rune(input[0])
 	if !unicode.IsUpper(firstChar) {
-		valid = stringInSlice(input, VALID_TYPES)
+		valid = stringInSlice(input, ValidTypes)
 	}
 	return valid
 }
@@ -101,14 +110,14 @@ func genStruct(model string, props map[string]string) string {
 func genViewModel(model string, props map[string]string) string {
 	res := fmt.Sprintf("type %sViewModel struct {\n\tID uint\n", model)
 	for k, v := range props {
-		line := fmt.Sprintf("\t%s %s,\n", k, v)
+		line := fmt.Sprintf("\t%s %s\n", k, v)
 		res = fmt.Sprintf("%s%s", res, line)
 	}
 	res = fmt.Sprintf("%s}\n", res)
 
 	res = fmt.Sprintf("%s\nfunc (m *%s) ViewModel() %sViewModel {\n\tvm := %sViewModel{\n", res, model, model, model)
 	for k, _ := range props {
-		line := fmt.Sprintf("\t\t%s: m.%s\n", k, k)
+		line := fmt.Sprintf("\t\t%s: m.%s,\n", k, k)
 		res = fmt.Sprintf("%s%s", res, line)
 	}
 	res = fmt.Sprintf("%s\t}\n\treturn vm\n}\n", res)
@@ -156,7 +165,7 @@ func genControllerCreate(model string) string {
 	lower := strings.ToLower(model)
 
 	res := fmt.Sprintf("var Create%s = func(w http.ResponseWriter, r *http.Request) {\n", model)
-	res = fmt.Sprintf("%s\t%s := models.%s\n", res, lower, model)
+	res = fmt.Sprintf("%s\t%s := models.%s{}\n", res, lower, model)
 	res = fmt.Sprintf("%s\terr := json.NewDecoder(r.Body).Decode(&%s)\n\tif err != nil {\n\t\tu.Respond(w, u.Message(false, \"Error while decoding request body\"))\n\t\treturn\n\t}\n", res, lower)
 	res = fmt.Sprintf("%s\tsuccess, message := %s.Create()\n", res, lower)
 	res = fmt.Sprintf("%s\tresp := u.Message(success, message)\n\tif success {\n\t\tresp[\"data\"] = %s.ViewModel()\n\t}\n\tu.Respond(w, resp)\n}\n", res, lower)
@@ -170,7 +179,7 @@ func genControllerGet(model string) string {
 	res = fmt.Sprintf("%s\tkey, ok := r.URL.Query()[\"id\"]\n", res)
 	res = fmt.Sprintf("%s\tif !ok || len(key[0]) != 1 {\n\t\tu.Respond(w, u.Message(false, \"Error while decoding request body\"))\n\t\treturn\n\t}\n", res)
 	res = fmt.Sprintf("%s\tID, err := strconv.ParseUint(key[0], 10, 32)\n\tif err != nil {\n\t\tu.Respond(w, u.Message(false, \"Error while decoding request body\"))\n\t\treturn\n\t}\n", res)
-	res = fmt.Sprintf("%s\tresp := u.Message(true, message)\n", res)
+	res = fmt.Sprintf("%s\tresp := u.Message(true, \"success\")\n", res)
 	res = fmt.Sprintf("%s\t%ss := models.Get%sByID(uint(ID))\n", res, lower, model)
 	res = fmt.Sprintf("%s\tresp[\"data\"] = %ss\n\tu.Respond(w, resp)\n}\n", res, lower)
 
@@ -182,7 +191,7 @@ func genControllerDelete(model string) string {
 	res := fmt.Sprintf("var Delete%s = func(w http.ResponseWriter, r *http.Request) {\n", model)
 	res = fmt.Sprintf("%s\tkey, ok := r.URL.Query()[\"id\"]\n", res)
 	res = fmt.Sprintf("%s\tif !ok || len(key[0]) != 1 {\n\t\tu.Respond(w, u.Message(false, \"Error while decoding request body\"))\n\t\treturn\n\t}\n", res)
-	res = fmt.Sprintf("%s\tID, err := strconv.ParseUint(key[0], 10, 32)))\n\tif err != nil {\n\t\tu.Respond(w, u.Message(false, \"Error while decoding request body\"))\n\t\treturn\n\t}\n", res)
+	res = fmt.Sprintf("%s\tID, err := strconv.ParseUint(key[0], 10, 32)\n\tif err != nil {\n\t\tu.Respond(w, u.Message(false, \"Error while decoding request body\"))\n\t\treturn\n\t}\n", res)
 	res = fmt.Sprintf("%s\t%s := models.Get%sByID(uint(ID))\n", res, lower, model)
 	res = fmt.Sprintf("%s\tsuccess, message := %s.Delete()\n", res, lower)
 	res = fmt.Sprintf("%s\tresp := u.Message(success, message)\n\tu.Respond(w, resp)\n}\n", res)
@@ -193,7 +202,7 @@ func genControllerUpdate(model string) string {
 	lower := strings.ToLower(model)
 
 	res := fmt.Sprintf("var Update%s = func(w http.ResponseWriter, r *http.Request) {\n", model)
-	res = fmt.Sprintf("%s\t%s := models.%s\n", res, lower, model)
+	res = fmt.Sprintf("%s\t%s := models.%s{}\n", res, lower, model)
 	res = fmt.Sprintf("%s\terr := json.NewDecoder(r.Body).Decode(&%s)\n\tif err != nil {\n\t\tu.Respond(w, u.Message(false, \"Error while decoding request body\"))\n\t\treturn\n\t}\n", res, lower)
 	res = fmt.Sprintf("%s\tsuccess, message := %s.Update()\n", res, lower)
 	res = fmt.Sprintf("%s\tresp := u.Message(success, message)\n\tif success {\n\t\tresp[\"data\"] = %s.ViewModel()\n\t}\n\tu.Respond(w, resp)\n}\n", res, lower)
@@ -252,4 +261,64 @@ func ensureBaseDir(fpath string) error {
 		return nil
 	}
 	return os.MkdirAll(fpath, 0755)
+}
+
+func contains(v string, a []string) bool {
+	for _, i := range a {
+		if i == v {
+			return true
+		}
+	}
+	return false
+}
+
+func goTypeToTs(gotype string) string {
+	if contains(gotype, NumberTypes) {
+		return "number"
+	}
+	if contains(gotype, StringTypes) {
+		return "string"
+	}
+	if contains(gotype, DateTypes) {
+		return "Date"
+	}
+	if contains(gotype, BoolTypes) {
+		return "boolean"
+	}
+	return gotype
+}
+
+func genTsModel(model string, props map[string]string) string {
+	res := fmt.Sprintf("export interface %s {\n", model)
+	for k, v := range props {
+		line := fmt.Sprintf("\t%s: %s;\n", k, goTypeToTs(v))
+		res = fmt.Sprintf("%s%s", res, line)
+	}
+	res = fmt.Sprintf("%s}\n", res)
+	return res
+}
+
+func genTsApiEndpoints(model string) string {
+	lower := strings.ToLower(model)
+
+	res := fmt.Sprintf("\tget%s: (id: number): AxiosPromise<M.ApiResponse<M.%s>> => base().get(`/%s?id=${id}`),\n", model, model, lower)
+	res = fmt.Sprintf("%s\tcreate%s: (m: %s): AxiosPromise<M.ApiResponse<M.%s>> => base().post(`/%s`, m),\n", res, model, model, model, lower)
+	res = fmt.Sprintf("%s\tupdate%s: (m: %s): AxiosPromise<M.ApiResponse<M.%s>> => base().patch(`/%s`, m),\n", res, model, model, model, lower)
+	res = fmt.Sprintf("%s\tdelete%s: (id: number): AxiosPromise<M.ApiResponse<M.%s>> => base().delete(`/%s?id=${id}`),\n", res, model, model, lower)
+
+	return res
+}
+
+func genReduxActions(model string) string {
+	res := fmt.Sprintf("const get%sCreator = ac.async<number, M.ApiResponse<M.%s>, M.ApiResponse<string>>('Get%s');\n", model, model, model)
+	res = fmt.Sprintf("%sconst create%sCreator = ac.async<M.%s, M.ApiResponse<M.%s>, M.ApiResponse<string>>('Create%s');\n", res, model, model, model, model)
+	res = fmt.Sprintf("%sconst update%sCreator = ac.async<M.%s, M.ApiResponse<M.%s>, M.ApiResponse<string>>('Update%s');\n", res, model, model, model, model)
+	res = fmt.Sprintf("%sconst delete%sCreator = ac.async<number, M.ApiResponse<string>, M.ApiResponse<string>>('Delete%s');\n", res, model, model)
+
+	res = fmt.Sprintf("%s\nget%s: A.wrapAsyncWorker(\n\tget%sCreator,\n\t(params, dispatch) => A.api.get%s(params).then(resp => resp.data)),\n", res, model, model, model)
+	res = fmt.Sprintf("%sdelete%s: A.wrapAsyncWorker(\n\tdelete%sCreator,\n\t(params, dispatch) => A.api.delete%s(params).then(resp => resp.data)),\n", res, model, model, model)
+	res = fmt.Sprintf("%screate%s: A.wrapAsyncWorker(\n\tcreate%sCreator,\n\t(params, dispatch) => A.api.create%s(params).then(resp => resp.data)),\n", res, model, model, model)
+	res = fmt.Sprintf("%supdate%s: A.wrapAsyncWorker(\n\tupdate%sCreator,\n\t(params, dispatch) => A.api.update%s(params).then(resp => resp.data)),\n", res, model, model, model)
+	return res
+
 }

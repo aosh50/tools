@@ -82,12 +82,30 @@ func TestGenControllerTop(t *testing.T) {
 	result := genControllerTop("swanwater-go")
 	log.Info(result)
 }
-
+func TestTs(t *testing.T) {
+	modelName, props := testModel()
+	result := genTsModel(modelName, props)
+	log.Info(result)
+}
+func TestTsApis(t *testing.T) {
+	modelName, _ := testModel()
+	result := genTsApiEndpoints(modelName)
+	log.Info(result)
+}
+func TestReduxActions(t *testing.T) {
+	modelName, _ := testModel()
+	result := genReduxActions(modelName)
+	log.Info(result)
+}
 func testModel() (string, map[string]string) {
 	modelName := "Paddock"
 	modelPropMap := make(map[string]string)
 	modelPropMap["Name"] = "string"
-	modelPropMap["Acres"] = "float32"
+	modelPropMap["Acres"] = "float64"
 	modelPropMap["FarmID"] = "uint"
+	modelPropMap["CentreLat"] = "float64"
+	modelPropMap["CentreLng"] = "float64"
+	modelPropMap["Notes"] = "string"
+
 	return modelName, modelPropMap
 }
