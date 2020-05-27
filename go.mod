@@ -1,4 +1,4 @@
-module github.com/aosh50/tools/web
+module github.com/aosh50/tools
 
 go 1.13
 
