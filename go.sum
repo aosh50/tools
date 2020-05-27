@@ -1,5 +1,6 @@
 github.com/aosh50/tools v0.0.0-20200527044912-d6b28eb0753a h1:C22/yGh04Z+5vX/Ygtx/owckK4uuSxcAec/DTpZGABI=
 github.com/aosh50/tools v0.0.0-20200527044912-d6b28eb0753a/go.mod h1:dX5QO20WEUlofHFl7882n/H4j2tS89Lfv8O+g1f2JRo=
+github.com/aosh50/tools v0.0.1 h1:LhY9QakkAgMelRXSiFhwnLuQbOAn8E3ZLHc5ieR/2xc=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/denisenkom/go-mssqldb v0.0.0-20191124224453-732737034ffd h1:83Wprp6ROGeiHFAP8WJdI2RoxALQYgdllERc3N5N2DM=
