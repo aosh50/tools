@@ -48,17 +48,19 @@ func newModel() {
 	}
 	fileContents := genModel(name, props)
 	controllerContents := genController(name, appName)
-	tsContents := genTsModel(name, props)
+	tsContents := genTs(name, props)
+	lower := strings.ToLower(name)
+
 	err := ensureBaseDir(fmt.Sprintf("gen/%s", appName))
 	if err != nil {
 		log.Fatalln("Ensure error")
 		log.Fatalln(err.Error())
 	}
-	err = WriteToFile(fmt.Sprintf("gen/%s/%s.go", appName, name), fileContents)
+	err = WriteToFile(fmt.Sprintf("gen/%s/%s.go", appName, lower), fileContents)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-	err = WriteToFile(fmt.Sprintf("gen/%s/%sController.go", appName, name), controllerContents)
+	err = WriteToFile(fmt.Sprintf("gen/%s/%sController.go", appName, lower), controllerContents)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -129,9 +131,9 @@ func genValidate(model string) string {
 	return fmt.Sprintf("func (m *%s) Validate() (bool, string) {\n\treturn true, \"Valid\"\n}\n", model)
 }
 func genCreate(model string) string {
-	res := fmt.Sprintf("func (m *%s) Create() (bool, string) {\n\tif resp, ok := p.Validate(); !ok {\n\t\treturn ok, resp\n\t}\n", model)
+	res := fmt.Sprintf("func (m *%s) Create() (bool, string) {\n\tif ok, resp := m.Validate(); !ok {\n\t\treturn ok, resp\n\t}\n", model)
 	res = fmt.Sprintf("%s\n\terr := GetDB().Create(m).Error\n\tif err != nil {\n\t\treturn false, err.Error()\n\t}\n", res)
-	res = fmt.Sprintf("%s\n\tif p.ID <= 0 {\n\t\treturn false, \"Failed to create %s, connection error.\"\n\t}\n", res, model)
+	res = fmt.Sprintf("%s\n\tif m.ID <= 0 {\n\t\treturn false, \"Failed to create %s, connection error.\"\n\t}\n", res, model)
 	res = fmt.Sprintf("%s\n\treturn true, \"%s has been created\"\n}\n", res, model)
 	return res
 
@@ -146,7 +148,7 @@ func genDelete(model string) string {
 
 func genUpdate(model string) string {
 	res := fmt.Sprintf("func (m *%s) Update() (bool, string) {\n", model)
-	res = fmt.Sprintf("%s\n\terr := GetDB().Update(m).Error\n\tif err != nil {\n\t\treturn false, err.Error()\n\t}\n", res)
+	res = fmt.Sprintf("%s\n\terr := GetDB().Save(&m).Error\n\tif err != nil {\n\t\treturn false, err.Error()\n\t}\n", res)
 	res = fmt.Sprintf("%s\n\treturn true, \"%s has been updated\"\n}\n", res, model)
 	return res
 
@@ -286,6 +288,13 @@ func goTypeToTs(gotype string) string {
 		return "boolean"
 	}
 	return gotype
+}
+
+func genTs(model string, props map[string]string) string {
+	res := genTsModel(model, props)
+	res = fmt.Sprintf("%s%s", res, genTsApiEndpoints(model))
+	res = fmt.Sprintf("%s%s", res, genReduxActions(model))
+	return res
 }
 
 func genTsModel(model string, props map[string]string) string {
