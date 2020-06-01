@@ -91,7 +91,7 @@ var Delete = func(w http.ResponseWriter, r *http.Request) {
 	Respond(w, resp)
 }
 
-func InvoiceActions() RestActions {
+func Actions() RestActions {
 	return RestActions{
 		Create:  Create,
 		Get:     Get,
